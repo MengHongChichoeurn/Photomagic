@@ -1,0 +1,6 @@
+{
+  "name": "Photo Magic - Desktop Launcher & Workspace",
+  "description": "Photoshop-inspired desktop launcher and creative workspace by kennmagic with multi-format image importing, dynamic layers, filters, and 3D wireframe mesh rendering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

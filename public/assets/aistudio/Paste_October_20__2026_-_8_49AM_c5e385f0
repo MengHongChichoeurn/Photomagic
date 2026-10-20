@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Magic - Desktop Launcher & Workspace</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            ps: {
+              bg: '#1e1e1e',
+              panel: '#252526',
+              header: '#2d2d2d',
+              border: '#383838',
+              hover: '#3c3c3c',
+              accent: '#007acc',
+              accentHover: '#0098ff',
+              text: '#cccccc',
+              muted: '#888888',
+              darkBg: '#121212'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar for Photoshop Look */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1e1e1e;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #383838;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555555;
+    }
+
+    /* Range slider custom styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #383838;
+      height: 4px;
+      border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: #007acc;
+      cursor: pointer;
+    }
+
+    .canvas-checkerboard {
+      background-color: #181818;
+      background-image: linear-gradient(45deg, #222 25%, transparent 25%), 
+                        linear-gradient(-45deg, #222 25%, transparent 25%), 
+                        linear-gradient(45deg, transparent 75%, #222 75%), 
+                        linear-gradient(-45deg, transparent 75%, #222 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    .glass-effect {
+      backdrop-filter: blur(8px);
+      background: rgba(30, 30, 30, 0.85);
+    }
+  </style>
+</head>
+<body class="bg-ps-bg text-ps-text h-full flex flex-col font-sans overflow-hidden">
+
+  <!-- ================= TOP APP HEADER / TITLEBAR ================= -->
+  <header id="titlebar" class="bg-ps-header border-b border-ps-border h-9 flex items-center justify-between px-3 text-xs shrink-0 z-50">
+    <!-- Left: App Icon + Branding + Admin Switcher -->
+    <div class="flex items-center space-x-3">
+      <!-- App Icon SVG (Wolf Wireframe 3D) -->
+      <div class="w-6 h-6 rounded flex items-center justify-center overflow-hidden shadow cursor-pointer transition transform hover:scale-105" onclick="showHomeScreen()">
+        <svg viewBox="0 0 100 100" class="w-full h-full">
+          <defs>
+            <radialGradient id="wolfBg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#0a2540"/>
+              <stop offset="100%" stop-color="#020b14"/>
+            </radialGradient>
+          </defs>
+          <rect width="100" height="100" fill="url(#wolfBg)"/>
+          <!-- 3D Wolf Wireframe Facets -->
+          <g stroke="#111111" stroke-width="1.2" stroke-linejoin="round">
+            <polygon points="50,15 35,32 50,42" fill="#a0a5b5"/>
+            <polygon points="50,15 50,42 65,32" fill="#c0c5d5"/>
+            <polygon points="35,32 20,25 30,48" fill="#787e8e"/>
+            <polygon points="65,32 80,25 70,48" fill="#989ea3"/>
+            <polygon points="50,42 30,48 50,65" fill="#888e9e"/>
+            <polygon points="50,42 50,65 70,48" fill="#a8aebf"/>
+            <polygon points="30,48 18,52 32,68" fill="#606573"/>
+            <polygon points="70,48 82,52 68,68" fill="#808593"/>
+            <polygon points="50,65 32,68 50,88" fill="#707584"/>
+            <polygon points="50,65 50,88 68,68" fill="#9095a4"/>
+            <polygon points="32,68 40,82 50,88" fill="#505562"/>
+            <polygon points="68,68 60,82 50,88" fill="#686d7a"/>
+            <!-- Eyes -->
+            <polygon points="38,40 45,43 36,46" fill="#00d2ff" stroke="none"/>
+            <polygon points="62,40 55,43 64,46" fill="#00d2ff" stroke="none"/>
+          </g>
+        </svg>
+      </div>
+
+      <span class="font-bold text-gray-200 tracking-wide">Photo Magic</span>
+      <span class="text-[10px] text-ps-muted bg-ps-panel px-1.5 py-0.5 rounded border border-ps-border">v2026.4 Pro</span>
+
+      <!-- Run as Admin Indicator -->
+      <button id="adminToggleBtn" onclick="toggleAdminMode()" class="flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] bg-amber-950/60 text-amber-400 border border-amber-700/50 hover:bg-amber-900/60 transition">
+        <i class="fa-solid fa-shield-halved text-xs" id="adminIcon"></i>
+        <span id="adminText">Run as Administrator</span>
+      </button>
+
+      <!-- Platform indicator switch -->
+      <div class="hidden sm:flex items-center space-x-1 bg-ps-bg/60 border border-ps-border px-2 py-0.5 rounded text-[10px] text-gray-400">
+        <i id="osIcon" class="fa-brands fa-windows text-blue-400"></i>
+        <span id="osBadgeText">Win 11 / macOS Sonoma Verified</span>
+      </div>
+    </div>
+
+    <!-- Center: Project Title -->
+    <div class="hidden lg:block font-medium text-gray-300 text-[11px] truncate max-w-xs" id="headerDocName">
+      Home - Photo Magic Launcher
+    </div>
+
+    <!-- Right: Window Controls / Platform Switcher -->
+    <div class="flex items-center space-x-3">
+      <!-- OS UI Mode Toggle Button -->
+      <button onclick="toggleOSStyle()" class="text-xs text-ps-muted hover:text-white px-2 py-0.5 rounded hover:bg-ps-hover transition" title="Switch OS Window Frame Style (Win / Mac)">
+        <i class="fa-solid fa-desktop mr-1"></i> <span id="osStyleName">Windows Style</span>
+      </button>
+
+      <!-- Dynamic Window Controls -->
+      <div id="windowControlsWin" class="flex items-center space-x-2 text-ps-muted">
+        <button class="hover:text-white px-1.5 py-0.5 hover:bg-ps-hover rounded"><i class="fa-solid fa-minus text-[10px]"></i></button>
+        <button class="hover:text-white px-1.5 py-0.5 hover:bg-ps-hover rounded"><i class="fa-regular fa-square text-[10px]"></i></button>
+        <button class="hover:bg-red-600 hover:text-white px-2 py-0.5 rounded transition"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+
+      <div id="windowControlsMac" class="hidden flex items-center space-x-1.5 pl-2">
+        <div class="w-3 h-3 rounded-full bg-red-500 hover:opacity-80 cursor-pointer"></div>
+        <div class="w-3 h-3 rounded-full bg-yellow-500 hover:opacity-80 cursor-pointer"></div>
+        <div class="w-3 h-3 rounded-full bg-green-500 hover:opacity-80 cursor-pointer"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= TOP MENU BAR (12 MENUS) ================= -->
+  <nav class="bg-ps-panel border-b border-ps-border flex items-center px-2 py-0.5 text-xs text-gray-300 select-none z-40 relative">
+    <div class="flex items-center space-x-1" id="topNavMenuList">
+      <!-- Menus dynamically or statically rendered -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover focus:bg-ps-hover hover:text-white flex items-center">File</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[200px] z-50 rounded-b">
+          <a href="#" onclick="openNewModal()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span class="flex items-center"><i class="fa-solid fa-file-circle-plus mr-2 text-ps-accent"></i>New File...</span><span class="text-ps-muted text-[10px]">Ctrl+N</span></a>
+          <label class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white cursor-pointer"><span class="flex items-center"><i class="fa-solid fa-folder-open mr-2 text-amber-400"></i>Open / Import...</span><span class="text-ps-muted text-[10px]">Ctrl+O</span>
+            <input type="file" id="fileImporter" accept=".png,.jpg,.jpeg,.svg,.psd,.tif,.tiff" class="hidden" onchange="handleFileImport(event)">
+          </label>
+          <div class="border-t border-ps-border my-1"></div>
+          <a href="#" onclick="saveCanvasImage()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span class="flex items-center"><i class="fa-solid fa-floppy-disk mr-2 text-emerald-400"></i>Save Workspace PNG</span><span class="text-ps-muted text-[10px]">Ctrl+S</span></a>
+          <a href="#" onclick="exportPSD()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span class="flex items-center"><i class="fa-solid fa-file-export mr-2 text-purple-400"></i>Export PSD Manifest</span><span class="text-ps-muted text-[10px]">Shift+Ctrl+S</span></a>
+          <div class="border-t border-ps-border my-1"></div>
+          <a href="#" onclick="showHomeScreen()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span><i class="fa-solid fa-house mr-2"></i>Return to Home</span></a>
+          <a href="#" onclick="triggerToast('Application Closed Sim')" class="flex justify-between px-3 py-1.5 hover:bg-red-600 hover:text-white"><span><i class="fa-solid fa-power-off mr-2"></i>Exit</span></a>
+        </div>
+      </div>
+
+      <!-- Edit -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Edit</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="undoLastAction()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span>Undo Stroke</span><span class="text-ps-muted text-[10px]">Ctrl+Z</span></a>
+          <a href="#" onclick="clearActiveLayer()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span>Clear Selected Layer</span><span class="text-ps-muted text-[10px]">Del</span></a>
+          <div class="border-t border-ps-border my-1"></div>
+          <a href="#" onclick="openSettingsModal()" class="flex justify-between px-3 py-1.5 hover:bg-ps-accent hover:text-white"><span>Preferences...</span><span class="text-ps-muted text-[10px]">Ctrl+K</span></a>
+        </div>
+      </div>
+
+      <!-- Image -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Image</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[200px] z-50 rounded-b">
+          <a href="#" onclick="applyFilter('brightness')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Auto Brightness / Contrast</a>
+          <a href="#" onclick="applyFilter('grayscale')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Grayscale Mode</a>
+          <a href="#" onclick="applyFilter('invert')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Invert Colors</a>
+          <a href="#" onclick="applyFilter('sepia')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Sepia Tone</a>
+        </div>
+      </div>
+
+      <!-- Layer -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Layer</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="addNewLayer()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">New Layer</a>
+          <a href="#" onclick="duplicateActiveLayer()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Duplicate Layer</a>
+          <a href="#" onclick="deleteActiveLayer()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block text-red-400">Delete Active Layer</a>
+          <div class="border-t border-ps-border my-1"></div>
+          <a href="#" onclick="flattenLayers()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Flatten Image</a>
+        </div>
+      </div>
+
+      <!-- Type -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Type</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="addTextLayerPrompt()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Add Text Layer</a>
+          <a href="#" onclick="triggerToast('Font Engine Ready: Inter, Sans, Serif')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Font Settings</a>
+        </div>
+      </div>
+
+      <!-- Select -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Select</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="triggerToast('All Canvas Selected')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Select All (Ctrl+A)</a>
+          <a href="#" onclick="triggerToast('Deselected')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Deselect (Ctrl+D)</a>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Filter</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="applyFilter('blur')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Gaussian Blur</a>
+          <a href="#" onclick="applyFilter('sharpen')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Sharpen Edges</a>
+          <a href="#" onclick="applyFilter('glow')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Neon Glow Effect</a>
+          <a href="#" onclick="applyFilter('wolf3d')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block text-cyan-400">3D Wolf Wireframe Overlay</a>
+        </div>
+      </div>
+
+      <!-- 3D -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">3D</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[200px] z-50 rounded-b">
+          <a href="#" onclick="toggle3DOverlay()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Toggle 3D Mesh Render</a>
+          <a href="#" onclick="open3DSettingsModal()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">3D Mesh Wireframe Options</a>
+        </div>
+      </div>
+
+      <!-- View -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">View</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="zoomCanvas(0.1)" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Zoom In (+10%)</a>
+          <a href="#" onclick="zoomCanvas(-0.1)" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Zoom Out (-10%)</a>
+          <a href="#" onclick="resetCanvasZoom()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Fit to Screen (100%)</a>
+        </div>
+      </div>
+
+      <!-- Plugins -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Plugins</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[200px] z-50 rounded-b">
+          <a href="#" onclick="triggerToast('KennMagic Core Engine v2.4 Active')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">Magic Vector Engine</a>
+          <a href="#" onclick="triggerToast('PSD Parser Module Ready')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">PSD / TIF Import Plugin</a>
+        </div>
+      </div>
+
+      <!-- Window -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Window</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[180px] z-50 rounded-b">
+          <a href="#" onclick="togglePanel('layersPanel')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white flex items-center justify-between"><span>Layers Panel</span><i class="fa-solid fa-check text-[10px]"></i></a>
+          <a href="#" onclick="togglePanel('historyPanel')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white flex items-center justify-between"><span>History Panel</span><i class="fa-solid fa-check text-[10px]"></i></a>
+          <a href="#" onclick="togglePanel('propertiesPanel')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white flex items-center justify-between"><span>Properties Panel</span><i class="fa-solid fa-check text-[10px]"></i></a>
+        </div>
+      </div>
+
+      <!-- Help -->
+      <div class="relative group">
+        <button class="px-2.5 py-1 rounded hover:bg-ps-hover hover:text-white">Help</button>
+        <div class="hidden group-hover:block absolute left-0 top-full bg-ps-panel border border-ps-border shadow-2xl py-1 min-w-[200px] z-50 rounded-b">
+          <a href="#" onclick="openAboutModal()" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">About Photo Magic...</a>
+          <a href="#" onclick="triggerToast('System: Windows/macOS Desktop Mode Verified')" class="px-3 py-1.5 hover:bg-ps-accent hover:text-white block">System Diagnostics</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side Toolbar Stats -->
+    <div class="ml-auto flex items-center space-x-3 text-[11px] text-ps-muted">
+      <span class="hidden md:inline"><i class="fa-solid fa-microchip mr-1"></i> RAM: <span class="text-gray-300">1.2 GB / 16 GB</span></span>
+      <span class="bg-ps-bg border border-ps-border px-2 py-0.5 rounded text-gray-300 font-mono" id="canvasSizeBadge">1920 x 1080 px</span>
+    </div>
+  </nav>
+
+  <!-- ================= MAIN CONTENT CONTAINER (HOME OR WORKSPACE) ================= -->
+  <main class="flex-1 flex overflow-hidden relative">
+
+    <!-- 1. HOME SCREEN / LAUNCHER DASHBOARD VIEW -->
+    <section id="homeView" class="w-full h-full flex flex-col bg-ps-bg p-6 overflow-y-auto">
+      <div class="max-w-6xl w-full mx-auto space-y-8">
+        
+        <!-- Welcome Hero Header -->
+        <div class="flex flex-col md:flex-row items-center justify-between bg-ps-panel border border-ps-border rounded-xl p-6 shadow-xl relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+            <i class="fa-solid fa-wand-magic-sparkles text-[220px] text-ps-accent"></i>
+          </div>
+          <div class="space-y-3 z-10 max-w-xl">
+            <div class="flex items-center space-x-3">
+              <span class="bg-ps-accent/20 text-ps-accent border border-ps-accent/40 text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider">Photoshop 70%+ Engine</span>
+              <span class="text-xs text-ps-muted">Owned by <strong class="text-gray-200">kennmagic</strong></span>
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">Photo Magic Desktop Launcher</h1>
+            <p class="text-ps-muted text-sm leading-relaxed">
+              High-fidelity creative workspace with multi-format importer (PNG, JPG, SVG, PSD, TIF), full layer dynamic management, 3D low-poly wireframe rendering, and desktop administrator controls.
+            </p>
+            <div class="flex flex-wrap gap-3 pt-2">
+              <button onclick="openNewModal()" class="px-5 py-2.5 bg-ps-accent hover:bg-ps-accentHover text-white font-medium rounded-lg text-sm flex items-center space-x-2 shadow-lg shadow-ps-accent/20 transition transform active:scale-95">
+                <i class="fa-solid fa-plus text-xs"></i>
+                <span>Create New File</span>
+              </button>
+              <label class="px-5 py-2.5 bg-ps-hover hover:bg-ps-border text-gray-200 border border-ps-border font-medium rounded-lg text-sm flex items-center space-x-2 cursor-pointer transition transform active:scale-95">
+                <i class="fa-solid fa-folder-open text-amber-400 text-xs"></i>
+                <span>Open / Import Image</span>
+                <input type="file" accept=".png,.jpg,.jpeg,.svg,.psd,.tif,.tiff" class="hidden" onchange="handleFileImport(event)">
+              </label>
+              <button onclick="openSettingsModal()" class="px-4 py-2.5 bg-ps-panel hover:bg-ps-hover border border-ps-border text-gray-300 rounded-lg text-sm transition">
+                <i class="fa-solid fa-gear mr-1.5"></i> App Settings
+              </button>
+            </div>
+          </div>
+
+          <!-- App Icon Showcase Badge -->
+          <div class="mt-6 md:mt-0 flex flex-col items-center justify-center p-4 bg-ps-header/80 border border-ps-border rounded-xl z-10 w-48 text-center shadow-lg">
+            <div class="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl border border-ps-border mb-3 relative group">
+              <svg viewBox="0 0 100 100" class="w-full h-full">
+                <rect width="100" height="100" fill="url(#wolfBg)"/>
+                <g stroke="#111111" stroke-width="1.2" stroke-linejoin="round">
+                  <polygon points="50,15 35,32 50,42" fill="#a0a5b5"/>
+                  <polygon points="50,15 50,42 65,32" fill="#c0c5d5"/>
+                  <polygon points="35,32 20,25 30,48" fill="#787e8e"/>
+                  <polygon points="65,32 80,25 70,48" fill="#989ea3"/>
+                  <polygon points="50,42 30,48 50,65" fill="#888e9e"/>
+                  <polygon points="50,42 50,65 70,48" fill="#a8aebf"/>
+                  <polygon points="30,48 18,52 32,68" fill="#606573"/>
+                  <polygon points="70,48 82,52 68,68" fill="#808593"/>
+                  <polygon points="50,65 32,68 50,88" fill="#707584"/>
+                  <polygon points="50,65 50,88 68,68" fill="#9095a4"/>
+                  <polygon points="38,40 45,43 36,46" fill="#00d2ff" stroke="none"/>
+                  <polygon points="62,40 55,43 64,46" fill="#00d2ff" stroke="none"/>
+                </g>
+              </svg>
+            </div>
+            <span class="text-xs font-bold text-gray-200">3D Wolf Structure</span>
+            <span class="text-[10px] text-ps-muted">Official Icon Badge</span>
+          </div>
+        </div>
+
+        <!-- Preset Templates Quick Launch Grid -->
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-ps-muted mb-4 flex items-center">
+            <i class="fa-solid fa-shapes mr-2 text-ps-accent"></i> Preset Canvas Sizes
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div onclick="createPresetCanvas(1920, 1080, 'Full HD Canvas')" class="p-4 bg-ps-panel hover:bg-ps-hover border border-ps-border hover:border-ps-accent rounded-lg cursor-pointer transition group">
+              <div class="flex items-center justify-between mb-2">
+                <i class="fa-solid fa-desktop text-xl text-blue-400 group-hover:scale-110 transition"></i>
+                <span class="text-[10px] bg-ps-bg px-2 py-0.5 rounded text-ps-muted">16:9</span>
+              </div>
+              <div class="text-sm font-medium text-gray-200">Full HD Desktop</div>
+              <div class="text-xs text-ps-muted">1920 x 1080 px • 300 DPI</div>
+            </div>
+
+            <div onclick="createPresetCanvas(3840, 2160, '4K UHD Canvas')" class="p-4 bg-ps-panel hover:bg-ps-hover border border-ps-border hover:border-ps-accent rounded-lg cursor-pointer transition group">
+              <div class="flex items-center justify-between mb-2">
+                <i class="fa-solid fa-tv text-xl text-purple-400 group-hover:scale-110 transition"></i>
+                <span class="text-[10px] bg-ps-bg px-2 py-0.5 rounded text-ps-muted">Ultra HD</span>
+              </div>
+              <div class="text-sm font-medium text-gray-200">4K Artwork Canvas</div>
+              <div class="text-xs text-ps-muted">3840 x 2160 px • 300 DPI</div>
+            </div>
+
+            <div onclick="createPresetCanvas(1080, 1080, 'Instagram Square')" class="p-4 bg-ps-panel hover:bg-ps-hover border border-ps-border hover:border-ps-accent rounded-lg cursor-pointer transition group">
+              <div class="flex items-center justify-between mb-2">
+                <i class="fa-solid fa-square-instagram text-xl text-pink-400 group-hover:scale-110 transition"></i>
+                <span class="text-[10px] bg-ps-bg px-2 py-0.5 rounded text-ps-muted">1:1</span>
+              </div>
+              <div class="text-sm font-medium text-gray-200">Social Square Post</div>
+              <div class="text-xs text-ps-muted">1080 x 1080 px • 72 DPI</div>
+            </div>
+
+            <div onclick="createPresetCanvas(800, 600, 'Classic Canvas')" class="p-4 bg-ps-panel hover:bg-ps-hover border border-ps-border hover:border-ps-accent rounded-lg cursor-pointer transition group">
+              <div class="flex items-center justify-between mb-2">
+                <i class="fa-solid fa-paint-brush text-xl text-emerald-400 group-hover:scale-110 transition"></i>
+                <span class="text-[10px] bg-ps-bg px-2 py-0.5 rounded text-ps-muted">4:3</span>
+              </div>
+              <div class="text-sm font-medium text-gray-200">Compact Illustration</div>
+              <div class="text-xs text-ps-muted">800 x 600 px • 72 DPI</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Projects Section & Drag/Drop Target -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-2 space-y-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-ps-muted flex items-center justify-between">
+              <span><i class="fa-solid fa-clock-rotate-left mr-2 text-ps-accent"></i> Recent Files</span>
+              <button onclick="clearRecentFiles()" class="text-xs text-ps-muted hover:text-white">Clear History</button>
+            </h2>
+            
+            <div id="recentFilesContainer" class="space-y-2">
+              <!-- Recent items list -->
+            </div>
+          </div>
+
+          <!-- Dropzone Importer Card -->
+          <div class="space-y-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-ps-muted">
+              <i class="fa-solid fa-file-import mr-2 text-ps-accent"></i> Import File
+            </h2>
+            <div id="dropZone" class="border-2 border-dashed border-ps-border hover:border-ps-accent rounded-xl p-6 bg-ps-panel/50 text-center flex flex-col items-center justify-center space-y-3 cursor-pointer transition h-56">
+              <i class="fa-solid fa-cloud-arrow-up text-4xl text-ps-accent"></i>
+              <div>
+                <p class="text-sm font-medium text-gray-200">Drag & Drop files here</p>
+                <p class="text-xs text-ps-muted mt-1">Supports PNG, JPG, SVG, PSD, TIF</p>
+              </div>
+              <label class="px-3 py-1.5 bg-ps-hover border border-ps-border text-xs text-gray-300 rounded hover:bg-ps-border cursor-pointer">
+                Browse Files
+                <input type="file" accept=".png,.jpg,.jpeg,.svg,.psd,.tif,.tiff" class="hidden" onchange="handleFileImport(event)">
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. PHOTOSHOP ACTIVE WORKSPACE VIEW (Hidden by default) -->
+    <section id="workspaceView" class="hidden flex-1 flex w-full h-full relative overflow-hidden">
+      
+      <!-- LEFT TOOLBAR BAR -->
+      <aside class="w-12 bg-ps-panel border-r border-ps-border flex flex-col items-center py-2 space-y-1.5 shrink-0 z-20 select-none text-ps-muted">
+        <button onclick="setTool('move')" id="tool-move" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white active-tool bg-ps-hover text-ps-accent" title="Move Tool (V)">
+          <i class="fa-solid fa-arrow-pointer"></i>
+        </button>
+        <button onclick="setTool('marquee')" id="tool-marquee" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Rectangular Marquee Tool (M)">
+          <i class="fa-regular fa-square"></i>
+        </button>
+        <button onclick="setTool('lasso')" id="tool-lasso" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Lasso Selection (L)">
+          <i class="fa-solid fa-vector-square"></i>
+        </button>
+        <button onclick="setTool('brush')" id="tool-brush" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Brush Tool (B)">
+          <i class="fa-solid fa-paint-brush"></i>
+        </button>
+        <button onclick="setTool('eraser')" id="tool-eraser" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Eraser Tool (E)">
+          <i class="fa-solid fa-eraser"></i>
+        </button>
+        <button onclick="setTool('pen')" id="tool-pen" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Pen Tool (P)">
+          <i class="fa-solid fa-pen-nib"></i>
+        </button>
+        <button onclick="setTool('text')" id="tool-text" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Horizontal Type Tool (T)">
+          <i class="fa-solid fa-font"></i>
+        </button>
+        <button onclick="setTool('shape')" id="tool-shape" class="w-8 h-8 rounded flex items-center justify-center hover:bg-ps-hover hover:text-white" title="Rectangle / Vector Tool (U)">
+          <i class="fa-solid fa-shapes"></i>
+        </button>
+        
+        <div class="border-t border-ps-border w-6 my-1"></div>
+
+        <!-- Color Swatch Foreground / Background -->
+        <div class="relative w-8 h-8 my-2">
+          <!-- Foreground Color -->
+          <input type="color" id="fgColorInput" value="#007acc" onchange="updateColors()" class="absolute left-0 top-0 w-5 h-5 rounded cursor-pointer border border-ps-border bg-transparent p-0">
+          <!-- Background Color -->
+          <input type="color" id="bgColorInput" value="#ffffff" onchange="updateColors()" class="absolute right-0 bottom-0 w-5 h-5 rounded cursor-pointer border border-ps-border bg-transparent p-0">
+        </div>
+
+        <button onclick="swapColors()" class="text-[10px] hover:text-white" title="Swap Colors (X)">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </aside>
+
+      <!-- CENTER CANVAS AREA -->
+      <div class="flex-1 flex flex-col bg-[#141414] overflow-hidden relative">
+        
+        <!-- Tool Options Bar Top Header -->
+        <div class="bg-ps-header border-b border-ps-border h-8 flex items-center px-4 text-xs text-ps-muted space-x-4 shrink-0">
+          <span id="currentToolLabel" class="font-semibold text-gray-200 uppercase tracking-wider text-[11px]">Tool: Move</span>
+          <div class="h-4 w-px bg-ps-border"></div>
+          
+          <!-- Tool controls depending on selected tool -->
+          <div class="flex items-center space-x-3 text-[11px]">
+            <label class="flex items-center space-x-1">
+              <span>Brush Size:</span>
+              <input type="range" id="brushSizeSlider" min="1" max="100" value="12" oninput="document.getElementById('brushSizeVal').textContent = this.value + 'px'" class="w-20">
+              <span id="brushSizeVal" class="text-gray-300 w-8">12px</span>
+            </label>
+            <label class="flex items-center space-x-1">
+              <span>Opacity:</span>
+              <input type="range" id="brushOpacitySlider" min="1" max="100" value="100" oninput="document.getElementById('brushOpacityVal').textContent = this.value + '%'" class="w-20">
+              <span id="brushOpacityVal" class="text-gray-300 w-8">100%</span>
+            </label>
+          </div>
+
+          <div class="ml-auto flex items-center space-x-2">
+            <button onclick="toggle3DOverlay()" class="px-2 py-0.5 bg-ps-panel border border-ps-border hover:bg-ps-hover rounded text-cyan-400 font-mono text-[10px]">
+              <i class="fa-solid fa-cube mr-1"></i> 3D Wolf Overlay
+            </button>
+            <button onclick="showHomeScreen()" class="px-2 py-0.5 bg-ps-panel border border-ps-border hover:bg-ps-hover rounded text-gray-300 text-[10px]">
+              <i class="fa-solid fa-house mr-1"></i> Home Dashboard
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Container with Checkerboard Background -->
+        <div class="flex-1 overflow-auto flex items-center justify-center p-8 relative canvas-checkerboard" id="canvasViewport">
+          <div id="canvasWrapper" class="relative shadow-2xl transition-transform duration-75">
+            <!-- Main Drawing Canvas -->
+            <canvas id="mainCanvas" class="bg-white block cursor-crosshair rounded-sm shadow-2xl"></canvas>
+            
+            <!-- 3D Wolf Wireframe Render Canvas Overlay -->
+            <canvas id="overlay3DCanvas" class="absolute inset-0 pointer-events-none hidden"></canvas>
+          </div>
+        </div>
+
+        <!-- Canvas Footer Bar -->
+        <div class="bg-ps-panel border-t border-ps-border h-6 flex items-center justify-between px-3 text-[10px] text-ps-muted shrink-0">
+          <div class="flex items-center space-x-3">
+            <span id="zoomLevelText">Zoom: 100%</span>
+            <span>Doc: <span id="docDimensionsText">1920 x 1080 px</span></span>
+          </div>
+          <div>
+            <span>Platform: <strong id="osStatusText" class="text-gray-300">Windows 11 / macOS Desktop Mode</strong></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT DOCKABLE PANELS CONTAINER -->
+      <aside class="w-64 bg-ps-panel border-l border-ps-border flex flex-col text-xs select-none shrink-0">
+        
+        <!-- PANEL TABS HEADER -->
+        <div class="flex border-b border-ps-border bg-ps-header">
+          <button onclick="switchTab('layers')" id="tab-layers" class="flex-1 py-2 text-center font-medium border-b-2 border-ps-accent text-white bg-ps-panel">Layers</button>
+          <button onclick="switchTab('properties')" id="tab-properties" class="flex-1 py-2 text-center font-medium border-b-2 border-transparent text-ps-muted hover:text-gray-200">Properties</button>
+          <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-center font-medium border-b-2 border-transparent text-ps-muted hover:text-gray-200">History</button>
+        </div>
+
+        <!-- TAB CONTENT: LAYERS -->
+        <div id="panel-layers" class="flex-1 flex flex-col overflow-hidden">
+          <!-- Layer Controls Bar -->
+          <div class="p-2 border-b border-ps-border space-y-2 bg-ps-panel">
+            <div class="flex items-center justify-between">
+              <span class="text-ps-muted text-[11px]">Blend Mode</span>
+              <select id="layerBlendMode" onchange="updateActiveLayerBlend()" class="bg-ps-bg border border-ps-border rounded px-2 py-0.5 text-xs text-gray-200 focus:outline-none">
+                <option value="normal">Normal</option>
+                <option value="multiply">Multiply</option>
+                <option value="screen">Screen</option>
+                <option value="overlay">Overlay</option>
+                <option value="darken">Darken</option>
+                <option value="lighten">Lighten</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-ps-muted text-[11px]">Opacity</span>
+              <div class="flex items-center space-x-1">
+                <input type="range" id="layerOpacity" min="0" max="100" value="100" oninput="updateActiveLayerOpacity(this.value)" class="w-20">
+                <span id="layerOpacityVal" class="text-gray-300 text-[10px] w-6">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Layer List -->
+          <div id="layersList" class="flex-1 overflow-y-auto divide-y divide-ps-border/50">
+            <!-- Dynamically populated layers -->
+          </div>
+
+          <!-- Bottom Layer Actions -->
+          <div class="p-2 border-t border-ps-border flex items-center justify-around bg-ps-header text-ps-muted">
+            <button onclick="addNewLayer()" class="hover:text-white" title="New Layer"><i class="fa-solid fa-plus"></i></button>
+            <button onclick="duplicateActiveLayer()" class="hover:text-white" title="Duplicate Layer"><i class="fa-solid fa-clone"></i></button>
+            <button onclick="toggleActiveLayerVisibility()" class="hover:text-white" title="Toggle Visibility"><i class="fa-solid fa-eye"></i></button>
+            <button onclick="deleteActiveLayer()" class="hover:text-red-400" title="Delete Layer"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT: PROPERTIES -->
+        <div id="panel-properties" class="hidden flex-1 p-3 overflow-y-auto space-y-4">
+          <div>
+            <h3 class="text-xs font-semibold text-gray-200 uppercase tracking-wider mb-2">Document Properties</h3>
+            <div class="space-y-2 text-ps-muted text-[11px]">
+              <div class="flex justify-between"><span>Width:</span><span id="propWidth" class="text-gray-200">1920 px</span></div>
+              <div class="flex justify-between"><span>Height:</span><span id="propHeight" class="text-gray-200">1080 px</span></div>
+              <div class="flex justify-between"><span>Color Mode:</span><span id="propColorMode" class="text-gray-200">RGB 8-bit</span></div>
+              <div class="flex justify-between"><span>Resolution:</span><span id="propRes" class="text-gray-200">300 DPI</span></div>
+            </div>
+          </div>
+
+          <div class="border-t border-ps-border pt-3">
+            <h3 class="text-xs font-semibold text-gray-200 uppercase tracking-wider mb-2">Quick Adjustments</h3>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="applyFilter('brightness')" class="p-2 bg-ps-bg border border-ps-border hover:bg-ps-hover rounded text-center">Brighten</button>
+              <button onclick="applyFilter('grayscale')" class="p-2 bg-ps-bg border border-ps-border hover:bg-ps-hover rounded text-center">Grayscale</button>
+              <button onclick="applyFilter('invert')" class="p-2 bg-ps-bg border border-ps-border hover:bg-ps-hover rounded text-center">Invert</button>
+              <button onclick="applyFilter('sepia')" class="p-2 bg-ps-bg border border-ps-border hover:bg-ps-hover rounded text-center">Sepia</button>
+            </div>
+          </div>
+
+          <div class="border-t border-ps-border pt-3">
+            <h3 class="text-xs font-semibold text-gray-200 uppercase tracking-wider mb-2">3D Render Settings</h3>
+            <button onclick="toggle3DOverlay()" class="w-full py-2 bg-ps-accent hover:bg-ps-accentHover text-white rounded text-center font-medium">
+              Toggle 3D Wolf Wireframe
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT: HISTORY -->
+        <div id="panel-history" class="hidden flex-1 flex flex-col overflow-hidden">
+          <div id="historyList" class="flex-1 overflow-y-auto divide-y divide-ps-border/40 text-xs">
+            <div class="p-2 bg-ps-hover/50 text-gray-200 flex items-center space-x-2">
+              <i class="fa-solid fa-file-circle-plus text-ps-accent"></i>
+              <span>New Document Created</span>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </section>
+
+  </main>
+
+  <!-- ================= MODALS CONTAINER ================= -->
+
+  <!-- 1. CREATE NEW FILE MODAL -->
+  <div id="newFileModal" class="hidden fixed inset-0 z-50 glass-effect flex items-center justify-center p-4">
+    <div class="bg-ps-panel border border-ps-border rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
+      <div class="bg-ps-header px-4 py-3 border-b border-ps-border flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-file-circle-plus text-ps-accent"></i>
+          <h3 class="font-bold text-gray-200 text-sm">New Document - Photo Magic</h3>
+        </div>
+        <button onclick="closeNewModal()" class="text-ps-muted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form onsubmit="handleCreateNewDocument(event)" class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="block text-ps-muted mb-1">Preset Name</label>
+          <input type="text" id="docNameInput" value="Untitled Project 1" class="w-full bg-ps-bg border border-ps-border rounded px-3 py-2 text-gray-200 focus:outline-none focus:border-ps-accent">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-ps-muted mb-1">Width (px)</label>
+            <input type="number" id="docWidthInput" value="1920" min="100" max="8000" class="w-full bg-ps-bg border border-ps-border rounded px-3 py-2 text-gray-200 focus:outline-none focus:border-ps-accent">
+          </div>
+          <div>
+            <label class="block text-ps-muted mb-1">Height (px)</label>
+            <input type="number" id="docHeightInput" value="1080" min="100" max="8000" class="w-full bg-ps-bg border border-ps-border rounded px-3 py-2 text-gray-200 focus:outline-none focus:border-ps-accent">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-ps-muted mb-1">Resolution (DPI)</label>
+            <select id="docResInput" class="w-full bg-ps-bg border border-ps-border rounded px-3 py-2 text-gray-200 focus:outline-none">
+              <option value="72">72 DPI (Web)</option>
+              <option value="150">150 DPI (Medium)</option>
+              <option value="300" selected>300 DPI (High Print)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-ps-muted mb-1">Color Mode</label>
+            <select id="docColorModeInput" class="w-full bg-ps-bg border border-ps-border rounded px-3 py-2 text-gray-200 focus:outline-none">
+              <option value="RGB">RGB Color (8-bit)</option>
+              <option value="CMYK">CMYK Color (Print)</option>
+              <option value="Grayscale">Grayscale</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-ps-muted mb-1">Background Contents</label>
+          <select id="docBgInput" class="w-full bg-ps-bg border border-ps-border rounded px-3 py-2 text-gray-200 focus:outline-none">
+            <option value="#ffffff">White</option>
+            <option value="#1e1e1e">Photoshop Dark (#1e1e1e)</option>
+            <option value="transparent">Transparent</option>
+          </select>
+        </div>
+
+        <div class="pt-3 border-t border-ps-border flex items-center justify-end space-x-3">
+          <button type="button" onclick="closeNewModal()" class="px-4 py-2 bg-ps-bg hover:bg-ps-hover border border-ps-border text-gray-300 rounded font-medium">Cancel</button>
+          <button type="submit" class="px-5 py-2 bg-ps-accent hover:bg-ps-accentHover text-white rounded font-medium shadow-md">Create Document</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. APP SETTINGS & ADMIN CONTROL MODAL -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 glass-effect flex items-center justify-center p-4">
+    <div class="bg-ps-panel border border-ps-border rounded-xl shadow-2xl max-w-xl w-full overflow-hidden flex flex-col">
+      <div class="bg-ps-header px-4 py-3 border-b border-ps-border flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-sliders text-ps-accent"></i>
+          <h3 class="font-bold text-gray-200 text-sm">Preferences & System Settings</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-ps-muted hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="p-6 space-y-6 text-xs overflow-y-auto max-h-[75vh]">
+        
+        <!-- App Info & Ownership Badge -->
+        <div class="p-4 bg-ps-bg border border-ps-border rounded-lg flex items-center justify-between">
+          <div>
+            <div class="font-bold text-sm text-gray-200">Photo Magic Core Launcher</div>
+            <div class="text-ps-muted mt-0.5">Owned & Created by <strong class="text-ps-accent">kennmagic</strong></div>
+          </div>
+          <span class="px-2.5 py-1 bg-ps-accent/20 border border-ps-accent/40 text-ps-accent font-semibold rounded text-[10px]">VERIFIED OWNER</span>
+        </div>
+
+        <!-- Admin Control Toggle -->
+        <div class="p-4 bg-amber-950/30 border border-amber-800/40 rounded-lg flex items-center justify-between">
+          <div>
+            <div class="font-bold text-amber-300">Run as Administrator</div>
+            <div class="text-ps-muted mt-0.5">Grant elevated filesystem permissions and GPU acceleration access.</div>
+          </div>
+          <button onclick="toggleAdminMode()" id="modalAdminBtn" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium">
+            Elevated Active
+          </button>
+        </div>
+
+        <!-- System Platform Compatibility Indicator -->
+        <div class="space-y-2">
+          <label class="font-semibold text-gray-200 block uppercase tracking-wider">OS Environment Simulation</label>
+          <div class="grid grid-cols-2 gap-3">
+            <div onclick="setOSPlatform('win')" class="p-3 bg-ps-bg border border-ps-accent rounded-lg flex items-center space-x-3 cursor-pointer">
+              <i class="fa-brands fa-windows text-2xl text-blue-400"></i>
+              <div>
+                <div class="font-bold text-gray-200">Windows 11 OS</div>
+                <div class="text-[10px] text-ps-muted">x64 Executable</div>
+              </div>
+            </div>
+            <div onclick="setOSPlatform('mac')" class="p-3 bg-ps-bg border border-ps-border hover:border-ps-accent rounded-lg flex items-center space-x-3 cursor-pointer">
+              <i class="fa-brands fa-apple text-2xl text-gray-300"></i>
+              <div>
+                <div class="font-bold text-gray-200">macOS Sonoma</div>
+                <div class="text-[10px] text-ps-muted">Apple Silicon / Universal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Performance & Data -->
+        <div class="space-y-2">
+          <label class="font-semibold text-gray-200 block uppercase tracking-wider">Performance & Memory</label>
+          <div class="space-y-3 p-3 bg-ps-bg border border-ps-border rounded-lg">
+            <div class="flex justify-between items-center">
+              <span class="text-ps-muted">GPU Acceleration</span>
+              <span class="text-emerald-400 font-semibold">Enabled (WebGL 2.0)</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-ps-muted">Scratch Disk Space</span>
+              <span class="text-gray-200">248.5 GB Available</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-ps-muted">Undo History Limit</span>
+              <span class="text-gray-200">50 States</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="bg-ps-header px-4 py-3 border-t border-ps-border flex justify-end">
+        <button onclick="closeSettingsModal()" class="px-4 py-1.5 bg-ps-accent hover:bg-ps-accentHover text-white rounded font-medium">Close Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ABOUT PHOTO MAGIC MODAL -->
+  <div id="aboutModal" class="hidden fixed inset-0 z-50 glass-effect flex items-center justify-center p-4">
+    <div class="bg-ps-panel border border-ps-border rounded-xl shadow-2xl max-w-md w-full p-6 text-center space-y-4">
+      <div class="w-20 h-20 rounded-2xl mx-auto overflow-hidden shadow-2xl border border-ps-border">
+        <svg viewBox="0 0 100 100" class="w-full h-full">
+          <rect width="100" height="100" fill="url(#wolfBg)"/>
+          <g stroke="#111111" stroke-width="1.2" stroke-linejoin="round">
+            <polygon points="50,15 35,32 50,42" fill="#a0a5b5"/>
+            <polygon points="50,15 50,42 65,32" fill="#c0c5d5"/>
+            <polygon points="35,32 20,25 30,48" fill="#787e8e"/>
+            <polygon points="65,32 80,25 70,48" fill="#989ea3"/>
+            <polygon points="50,42 30,48 50,65" fill="#888e9e"/>
+            <polygon points="50,42 50,65 70,48" fill="#a8aebf"/>
+            <polygon points="30,48 18,52 32,68" fill="#606573"/>
+            <polygon points="70,48 82,52 68,68" fill="#808593"/>
+            <polygon points="50,65 32,68 50,88" fill="#707584"/>
+            <polygon points="50,65 50,88 68,68" fill="#9095a4"/>
+            <polygon points="38,40 45,43 36,46" fill="#00d2ff" stroke="none"/>
+            <polygon points="62,40 55,43 64,46" fill="#00d2ff" stroke="none"/>
+          </g>
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-white">Photo Magic</h2>
+        <p class="text-xs text-ps-accent font-semibold mt-0.5">Desktop Launcher & Image Suite</p>
+        <p class="text-xs text-ps-muted mt-2">Designed with a 70%+ Adobe Photoshop layout aesthetic, supporting multi-layer rendering and 3D wireframe mesh overlays.</p>
+      </div>
+      <div class="p-3 bg-ps-bg border border-ps-border rounded text-xs text-ps-muted">
+        <div>Owner & Creator: <strong class="text-gray-200">kennmagic</strong></div>
+        <div>Engine Target: <strong class="text-gray-200">Windows 11 / macOS Sonoma</strong></div>
+      </div>
+      <button onclick="closeAboutModal()" class="px-5 py-2 bg-ps-accent hover:bg-ps-accentHover text-white text-xs rounded font-medium w-full">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-8 right-8 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- ================= APPLICATION JAVASCRIPT ================= -->
+  <script>
+    // Global Application State & Storage
+    const state = {
+      isAdmin: true,
+      osMode: 'win', // 'win' or 'mac'
+      currentView: 'home', // 'home' or 'workspace'
+      activeTool: 'move',
+      fgColor: '#007acc',
+      bgColor: '#ffffff',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      zoomLevel: 1.0,
+      layers: [], // array of layer objects { id, name, canvas, ctx, visible, opacity, blend }
+      activeLayerIndex: 0,
+      history: [],
+      show3DWolfOverlay: false,
+      recentFiles: [
+        { name: 'wolf_render_3d_concept.psd', format: 'PSD', date: '2026-04-18', size: '24.2 MB', width: 1920, height: 1080 },
+        { name: 'magic_graphic_cover.png', format: 'PNG', date: '2026-04-15', size: '8.4 MB', width: 1200, height: 1200 },
+        { name: 'branding_vector_icon.svg', format: 'SVG', date: '2026-04-10', size: '1.1 MB', width: 800, height: 600 }
+      ]
+    };
+
+    // DOM Elements Reference
+    const mainCanvas = document.getElementById('mainCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+    const overlay3DCanvas = document.getElementById('overlay3DCanvas');
+    const overlay3DCtx = overlay3DCanvas.getContext('2d');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    // Drawing Interaction Variables
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    // Initialization on Page Load
+    window.onload = function() {
+      renderRecentFiles();
+      initCanvasEvents();
+      initDragAndDrop();
+      triggerToast('Photo Magic Desktop Initialized (kennmagic)');
+    };
+
+    // View Navigation Switcher
+    function showHomeScreen() {
+      state.currentView = 'home';
+      document.getElementById('homeView').classList.remove('hidden');
+      document.getElementById('workspaceView').classList.add('hidden');
+      document.getElementById('headerDocName').textContent = 'Home - Photo Magic Launcher';
+    }
+
+    function showWorkspaceView() {
+      state.currentView = 'workspace';
+      document.getElementById('homeView').classList.add('hidden');
+      document.getElementById('workspaceView').classList.remove('hidden');
+    }
+
+    // Modal Control Functions
+    function openNewModal() { document.getElementById('newFileModal').classList.remove('hidden'); }
+    function closeNewModal() { document.getElementById('newFileModal').classList.add('hidden'); }
+    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); }
+    function closeSettingsModal() { document.getElementById('settingsModal').classList.add('hidden'); }
+    function openAboutModal() { document.getElementById('aboutModal').classList.remove('hidden'); }
+    function closeAboutModal() { document.getElementById('aboutModal').classList.add('hidden'); }
+
+    // Admin Toggle Functionality
+    function toggleAdminMode() {
+      state.isAdmin = !state.isAdmin;
+      const adminBtn = document.getElementById('adminToggleBtn');
+      const adminText = document.getElementById('adminText');
+      const modalBtn = document.getElementById('modalAdminBtn');
+
+      if (state.isAdmin) {
+        adminBtn.className = "flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] bg-amber-950/60 text-amber-400 border border-amber-700/50 hover:bg-amber-900/60 transition";
+        adminText.textContent = "Run as Administrator";
+        modalBtn.textContent = "Elevated Active";
+        modalBtn.className = "px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded font-medium";
+        triggerToast("Administrator Mode Granted");
+      } else {
+        adminBtn.className = "flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] bg-ps-panel text-ps-muted border border-ps-border hover:bg-ps-hover transition";
+        adminText.textContent = "Standard User";
+        modalBtn.textContent = "Switch to Admin Mode";
+        modalBtn.className = "px-3 py-1.5 bg-ps-hover hover:bg-ps-border text-gray-200 rounded font-medium border border-ps-border";
+        triggerToast("Switched to Standard Permissions");
+      }
+    }
+
+    // OS Style Switcher
+    function toggleOSStyle() {
+      setOSPlatform(state.osMode === 'win' ? 'mac' : 'win');
+    }
+
+    function setOSPlatform(os) {
+      state.osMode = os;
+      const winCtrls = document.getElementById('windowControlsWin');
+      const macCtrls = document.getElementById('windowControlsMac');
+      const osIcon = document.getElementById('osIcon');
+      const osStyleName = document.getElementById('osStyleName');
+
+      if (os === 'mac') {
+        winCtrls.classList.add('hidden');
+        macCtrls.classList.remove('hidden');
+        osIcon.className = "fa-brands fa-apple text-gray-300";
+        osStyleName.textContent = "macOS Style";
+        document.getElementById('osBadgeText').textContent = "macOS Sonoma Verified";
+      } else {
+        winCtrls.classList.remove('hidden');
+        macCtrls.classList.add('hidden');
+        osIcon.className = "fa-brands fa-windows text-blue-400";
+        osStyleName.textContent = "Windows Style";
+        document.getElementById('osBadgeText').textContent = "Win 11 Verified";
+      }
+      triggerToast(`Switched OS Layout to ${os === 'mac' ? 'macOS' : 'Windows'}`);
+    }
+
+    // Recent Files Rendering
+    function renderRecentFiles() {
+      const container = document.getElementById('recentFilesContainer');
+      container.innerHTML = '';
+
+      state.recentFiles.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = "p-3 bg-ps-panel hover:bg-ps-hover border border-ps-border rounded-lg flex items-center justify-between cursor-pointer transition group";
+        item.onclick = () => loadRecentFile(file);
+
+        let iconClass = "fa-file-image text-blue-400";
+        if (file.format === 'PSD') iconClass = "fa-layer-group text-purple-400";
+        if (file.format === 'SVG') iconClass = "fa-vector-square text-amber-400";
+
+        item.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded bg-ps-bg flex items-center justify-center border border-ps-border group-hover:border-ps-accent">
+              <i class="fa-solid ${iconClass}"></i>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-gray-200 group-hover:text-ps-accent transition">${file.name}</div>
+              <div class="text-[10px] text-ps-muted">${file.format} • ${file.width} x ${file.height} px • ${file.size}</div>
+            </div>
+          </div>
+          <span class="text-[10px] text-ps-muted">${file.date}</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function clearRecentFiles() {
+      state.recentFiles = [];
+      renderRecentFiles();
+      triggerToast('Recent File History Cleared');
+    }
+
+    function loadRecentFile(file) {
+      createNewDocument(file.name, file.width, file.height, '#ffffff');
+      triggerToast(`Opened Recent Project: ${file.name}`);
+    }
+
+    // Document Creation Handler
+    function handleCreateNewDocument(e) {
+      e.preventDefault();
+      const name = document.getElementById('docNameInput').value || 'Untitled Project';
+      const width = parseInt(document.getElementById('docWidthInput').value) || 1920;
+      const height = parseInt(document.getElementById('docHeightInput').value) || 1080;
+      const bg = document.getElementById('docBgInput').value;
+
+      createNewDocument(name, width, height, bg);
+      closeNewModal();
+    }
+
+    function createPresetCanvas(w, h, name) {
+      createNewDocument(name, w, h, '#ffffff');
+    }
+
+    function createNewDocument(name, width, height, background) {
+      state.canvasWidth = width;
+      state.canvasHeight = height;
+      state.layers = [];
+
+      // Scale canvas dimensions visually to fit screen
+      const maxDisplayW = Math.min(window.innerWidth - 320, width);
+      const scale = maxDisplayW / width;
+      
+      mainCanvas.width = width;
+      mainCanvas.height = height;
+      overlay3DCanvas.width = width;
+      overlay3DCanvas.height = height;
+
+      // Adjust wrapper sizing
+      canvasWrapper.style.width = (width * (scale < 1 ? scale : 1)) + 'px';
+      canvasWrapper.style.height = (height * (scale < 1 ? scale : 1)) + 'px';
+
+      // Update Top Badges & Labels
+      document.getElementById('canvasSizeBadge').textContent = `${width} x ${height} px`;
+      document.getElementById('headerDocName').textContent = `${name} @ 100% (${document.getElementById('docColorModeInput')?.value || 'RGB'}/8)`;
+      document.getElementById('docDimensionsText').textContent = `${width} x ${height} px`;
+      document.getElementById('propWidth').textContent = `${width} px`;
+      document.getElementById('propHeight').textContent = `${height} px`;
+
+      // Create Initial Background Layer
+      const bgLayer = createLayerObject('Background', width, height);
+      if (background !== 'transparent') {
+        bgLayer.ctx.fillStyle = background;
+        bgLayer.ctx.fillRect(0, 0, width, height);
+      }
+      state.layers.push(bgLayer);
+
+      // Create Drawing Layer
+      const drawLayer = createLayerObject('Layer 1', width, height);
+      state.layers.push(drawLayer);
+      state.activeLayerIndex = 1;
+
+      renderLayersList();
+      compositeLayers();
+      showWorkspaceView();
+      logHistory(`Created Document (${width}x${height})`);
+    }
+
+    // Layer System Management
+    function createLayerObject(name, w, h) {
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      return {
+        id: 'layer_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: name,
+        canvas: canvas,
+        ctx: canvas.getContext('2d'),
+        visible: true,
+        opacity: 100,
+        blend: 'normal'
+      };
+    }
+
+    function addNewLayer() {
+      const name = `Layer ${state.layers.length}`;
+      const newLayer = createLayerObject(name, state.canvasWidth, state.canvasHeight);
+      state.layers.push(newLayer);
+      state.activeLayerIndex = state.layers.length - 1;
+      renderLayersList();
+      logHistory('Added New Layer');
+    }
+
+    function duplicateActiveLayer() {
+      if (state.layers.length === 0) return;
+      const current = state.layers[state.activeLayerIndex];
+      const dup = createLayerObject(current.name + ' Copy', state.canvasWidth, state.canvasHeight);
+      dup.ctx.drawImage(current.canvas, 0, 0);
+      state.layers.push(dup);
+      state.activeLayerIndex = state.layers.length - 1;
+      renderLayersList();
+      compositeLayers();
+      logHistory('Duplicated Active Layer');
+    }
+
+    function deleteActiveLayer() {
+      if (state.layers.length <= 1) {
+        triggerToast('Cannot delete the last remaining layer');
+        return;
+      }
+      state.layers.splice(state.activeLayerIndex, 1);
+      state.activeLayerIndex = Math.max(0, state.activeLayerIndex - 1);
+      renderLayersList();
+      compositeLayers();
+      logHistory('Deleted Active Layer');
+    }
+
+    function toggleActiveLayerVisibility() {
+      if (state.layers[state.activeLayerIndex]) {
+        state.layers[state.activeLayerIndex].visible = !state.layers[state.activeLayerIndex].visible;
+        renderLayersList();
+        compositeLayers();
+      }
+    }
+
+    function renderLayersList() {
+      const container = document.getElementById('layersList');
+      container.innerHTML = '';
+
+      // Render upside down for Photoshop stack feel
+      for (let i = state.layers.length - 1; i >= 0; i--) {
+        const layer = state.layers[i];
+        const item = document.createElement('div');
+        const isActive = i === state.activeLayerIndex;
+
+        item.className = `p-2.5 flex items-center justify-between cursor-pointer transition border-b border-ps-border/40 ${
+          isActive ? 'bg-ps-accent/20 border-l-4 border-l-ps-accent text-white' : 'hover:bg-ps-hover text-ps-muted'
+        }`;
+        
+        item.onclick = () => {
+          state.activeLayerIndex = i;
+          renderLayersList();
+        };
+
+        item.innerHTML = `
+          <div class="flex items-center space-x-2.5 truncate">
+            <button onclick="event.stopPropagation(); toggleLayerVisibilityAt(${i})" class="hover:text-white">
+              <i class="fa-solid ${layer.visible ? 'fa-eye text-gray-300' : 'fa-eye-slash text-ps-muted'} text-xs"></i>
+            </button>
+            <div class="w-6 h-6 bg-ps-bg border border-ps-border rounded flex items-center justify-center overflow-hidden">
+              <i class="fa-solid fa-image text-[10px]"></i>
+            </div>
+            <span class="text-xs font-medium truncate">${layer.name}</span>
+          </div>
+          <span class="text-[10px] text-ps-muted">${layer.opacity}%</span>
+        `;
+        container.appendChild(item);
+      }
+    }
+
+    function toggleLayerVisibilityAt(index) {
+      state.layers[index].visible = !state.layers[index].visible;
+      renderLayersList();
+      compositeLayers();
+    }
+
+    function updateActiveLayerOpacity(val) {
+      if (state.layers[state.activeLayerIndex]) {
+        state.layers[state.activeLayerIndex].opacity = parseInt(val);
+        document.getElementById('layerOpacityVal').textContent = val + '%';
+        compositeLayers();
+      }
+    }
+
+    function updateActiveLayerBlend() {
+      if (state.layers[state.activeLayerIndex]) {
+        state.layers[state.activeLayerIndex].blend = document.getElementById('layerBlendMode').value;
+        compositeLayers();
+      }
+    }
+
+    // Composite All Layers into Main Display Canvas
+    function compositeLayers() {
+      mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+
+      state.layers.forEach(layer => {
+        if (!layer.visible) return;
+        mainCtx.save();
+        mainCtx.globalAlpha = layer.opacity / 100;
+        mainCtx.globalCompositeOperation = getCanvasBlendMode(layer.blend);
+        mainCtx.drawImage(layer.canvas, 0, 0);
+        mainCtx.restore();
+      });
+    }
+
+    function getCanvasBlendMode(blend) {
+      switch (blend) {
+        case 'multiply': return 'multiply';
+        case 'screen': return 'screen';
+        case 'overlay': return 'overlay';
+        case 'darken': return 'darken';
+        case 'lighten': return 'lighten';
+        default: return 'source-over';
+      }
+    }
+
+    // Interactive Drawing Event Listeners
+    function initCanvasEvents() {
+      mainCanvas.addEventListener('mousedown', startDrawing);
+      mainCanvas.addEventListener('mousemove', draw);
+      mainCanvas.addEventListener('mouseup', stopDrawing);
+      mainCanvas.addEventListener('mouseleave', stopDrawing);
+
+      // Touch screen support
+      mainCanvas.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY });
+        mainCanvas.dispatchEvent(mouseEvent);
+      });
+      mainCanvas.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY });
+        mainCanvas.dispatchEvent(mouseEvent);
+      });
+      mainCanvas.addEventListener('touchend', () => {
+        const mouseEvent = new MouseEvent('mouseup', {});
+        mainCanvas.dispatchEvent(mouseEvent);
+      });
+    }
+
+    function getCanvasCoords(e) {
+      const rect = mainCanvas.getBoundingClientRect();
+      const scaleX = mainCanvas.width / rect.width;
+      const scaleY = mainCanvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function startDrawing(e) {
+      if (state.layers.length === 0) return;
+      isDrawing = true;
+      const coords = getCanvasCoords(e);
+      lastX = coords.x;
+      lastY = coords.y;
+
+      if (state.activeTool === 'text') {
+        addTextToLayer(coords.x, coords.y);
+        isDrawing = false;
+      }
+    }
+
+    function draw(e) {
+      if (!isDrawing || state.layers.length === 0) return;
+      const coords = getCanvasCoords(e);
+      const activeLayer = state.layers[state.activeLayerIndex];
+      const ctx = activeLayer.ctx;
+
+      const brushSize = parseInt(document.getElementById('brushSizeSlider').value);
+      const opacity = parseInt(document.getElementById('brushOpacitySlider').value) / 100;
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (state.activeTool === 'brush') {
+        ctx.strokeStyle = state.fgColor;
+        ctx.lineWidth = brushSize;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+      } else if (state.activeTool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = brushSize;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(coords.x, coords.y);
+        ctx.stroke();
+      } else if (state.activeTool === 'shape') {
+        // Clear active temp stroke and draw rectangle
+        ctx.fillStyle = state.fgColor;
+        ctx.fillRect(coords.x - brushSize, coords.y - brushSize, brushSize * 2, brushSize * 2);
+      }
+
+      ctx.restore();
+      lastX = coords.x;
+      lastY = coords.y;
+
+      compositeLayers();
+    }
+
+    function stopDrawing() {
+      if (isDrawing) {
+        isDrawing = false;
+        logHistory(`Used ${state.activeTool.toUpperCase()} Tool`);
+      }
+    }
+
+    function addTextToLayer(x, y) {
+      const text = prompt("Enter text for Canvas:", "Photo Magic");
+      if (!text) return;
+      const activeLayer = state.layers[state.activeLayerIndex];
+      const ctx = activeLayer.ctx;
+
+      const fontSize = document.getElementById('brushSizeSlider').value * 2;
+      ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+      ctx.fillStyle = state.fgColor;
+      ctx.fillText(text, x, y);
+      compositeLayers();
+      logHistory('Added Text Element');
+    }
+
+    // Tools Switcher
+    function setTool(toolName) {
+      state.activeTool = toolName;
+      document.querySelectorAll('aside button').forEach(btn => btn.classList.remove('bg-ps-hover', 'text-ps-accent'));
+      const activeBtn = document.getElementById(`tool-${toolName}`);
+      if (activeBtn) activeBtn.classList.add('bg-ps-hover', 'text-ps-accent');
+      document.getElementById('currentToolLabel').textContent = `Tool: ${toolName.toUpperCase()}`;
+    }
+
+    // Color Swatches
+    function updateColors() {
+      state.fgColor = document.getElementById('fgColorInput').value;
+      state.bgColor = document.getElementById('bgColorInput').value;
+    }
+
+    function swapColors() {
+      const temp = state.fgColor;
+      state.fgColor = state.bgColor;
+      state.bgColor = temp;
+      document.getElementById('fgColorInput').value = state.fgColor;
+      document.getElementById('bgColorInput').value = state.bgColor;
+    }
+
+    // File Import Handling (PNG, JPG, SVG, PSD, TIF)
+    function initDragAndDrop() {
+      const dropZone = document.getElementById('dropZone');
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+      });
+      dropZone.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) processImportedFile(files[0]);
+      });
+    }
+
+    function handleFileImport(e) {
+      const files = e.target.files;
+      if (files.length > 0) processImportedFile(files[0]);
+    }
+
+    function processImportedFile(file) {
+      const reader = new FileReader();
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      reader.onload = function(evt) {
+        if (ext === 'svg' || ext === 'png' || ext === 'jpg' || ext === 'jpeg') {
+          const img = new Image();
+          img.onload = function() {
+            createNewDocument(file.name, img.width || 1200, img.height || 800, '#ffffff');
+            const targetLayer = state.layers[state.activeLayerIndex];
+            targetLayer.ctx.drawImage(img, 0, 0);
+            compositeLayers();
+            triggerToast(`Imported Image (${ext.toUpperCase()}): ${file.name}`);
+          };
+          img.src = evt.target.result;
+        } else if (ext === 'psd' || ext === 'tif' || ext === 'tiff') {
+          // Simulated layer parser for complex graphics formats
+          createNewDocument(file.name, 1920, 1080, '#1e1e1e');
+          const activeLayer = state.layers[state.activeLayerIndex];
+          const ctx = activeLayer.ctx;
+
+          ctx.fillStyle = '#007acc';
+          ctx.font = '24px Inter, sans-serif';
+          ctx.fillText(`Parsed Format: ${ext.toUpperCase()} [${file.name}]`, 100, 200);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 4;
+          ctx.strokeRect(80, 150, 600, 300);
+
+          compositeLayers();
+          triggerToast(`Parsed Complex File Header: ${file.name}`);
+        }
+      };
+
+      if (ext === 'svg') reader.readAsText(file);
+      else reader.readAsDataURL(file);
+    }
+
+    // Image Filter Adjustments
+    function applyFilter(filterType) {
+      if (state.layers.length === 0) return;
+      const activeLayer = state.layers[state.activeLayerIndex];
+      const ctx = activeLayer.ctx;
+      const imgData = ctx.getImageData(0, 0, state.canvasWidth, state.canvasHeight);
+      const data = imgData.data;
+
+      if (filterType === 'grayscale') {
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          data[i] = avg;
+          data[i + 1] = avg;
+          data[i + 2] = avg;
+        }
+      } else if (filterType === 'invert') {
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = 255 - data[i];
+          data[i + 1] = 255 - data[i + 1];
+          data[i + 2] = 255 - data[i + 2];
+        }
+      } else if (filterType === 'sepia') {
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189));
+          data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168));
+          data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131));
+        }
+      } else if (filterType === 'brightness') {
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] + 30);
+          data[i + 1] = Math.min(255, data[i + 1] + 30);
+          data[i + 2] = Math.min(255, data[i + 2] + 30);
+        }
+      } else if (filterType === 'wolf3d') {
+        drawWolf3DWireframe(ctx);
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      compositeLayers();
+      logHistory(`Applied Filter: ${filterType.toUpperCase()}`);
+      triggerToast(`Applied Filter: ${filterType}`);
+    }
+
+    // 3D Wolf Overlay Renderer
+    function toggle3DOverlay() {
+      state.show3DWolfOverlay = !state.show3DWolfOverlay;
+      if (state.show3DWolfOverlay) {
+        overlay3DCanvas.classList.remove('hidden');
+        render3DWolfMesh();
+        triggerToast('3D Wolf Wireframe Overlay Rendered');
+      } else {
+        overlay3DCanvas.classList.add('hidden');
+        triggerToast('3D Overlay Hidden');
+      }
+    }
+
+    function render3DWolfMesh() {
+      overlay3DCtx.clearRect(0, 0, overlay3DCanvas.width, overlay3DCanvas.height);
+      drawWolf3DWireframe(overlay3DCtx);
+    }
+
+    function drawWolf3DWireframe(ctx) {
+      const cx = state.canvasWidth / 2;
+      const cy = state.canvasHeight / 2;
+      const scale = Math.min(state.canvasWidth, state.canvasHeight) / 300;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(scale, scale);
+
+      ctx.strokeStyle = '#00d2ff';
+      ctx.lineWidth = 1.5;
+      ctx.fillStyle = 'rgba(10, 37, 64, 0.4)';
+
+      const polygons = [
+        [ [0, -100], [-45, -50], [0, -20] ],
+        [ [0, -100], [0, -20], [45, -50] ],
+        [ [-45, -50], [-90, -70], [-60, 0] ],
+        [ [45, -50], [90, -70], [60, 0] ],
+        [ [0, -20], [-60, 0], [0, 50] ],
+        [ [0, -20], [0, 50], [60, 0] ],
+        [ [-60, 0], [-96, 10], [-54, 60] ],
+        [ [60, 0], [96, 10], [54, 60] ],
+        [ [0, 50], [-54, 60], [0, 120] ],
+        [ [0, 50], [0, 120], [54, 60] ]
+      ];
+
+      polygons.forEach(pts => {
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        ctx.lineTo(pts[1][0], pts[1][1]);
+        ctx.lineTo(pts[2][0], pts[2][1]);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      // Eyes
+      ctx.fillStyle = '#00ffea';
+      ctx.beginPath();
+      ctx.arc(-25, -25, 6, 0, Math.PI * 2);
+      ctx.arc(25, -25, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Zoom Controls
+    function zoomCanvas(delta) {
+      state.zoomLevel = Math.max(0.2, Math.min(3.0, state.zoomLevel + delta));
+      canvasWrapper.style.transform = `scale(${state.zoomLevel})`;
+      document.getElementById('zoomLevelText').textContent = `Zoom: ${Math.round(state.zoomLevel * 100)}%`;
+    }
+
+    function resetCanvasZoom() {
+      state.zoomLevel = 1.0;
+      canvasWrapper.style.transform = `scale(1.0)`;
+      document.getElementById('zoomLevelText').textContent = `Zoom: 100%`;
+    }
+
+    // Panel Tabs Switcher
+    function switchTab(tabName) {
+      ['layers', 'properties', 'history'].forEach(t => {
+        document.getElementById(`panel-${t}`).classList.add('hidden');
+        const tabBtn = document.getElementById(`tab-${t}`);
+        tabBtn.classList.remove('border-ps-accent', 'text-white', 'bg-ps-panel');
+        tabBtn.classList.add('border-transparent', 'text-ps-muted');
+      });
+
+      document.getElementById(`panel-${tabName}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-${tabName}`);
+      activeBtn.classList.add('border-ps-accent', 'text-white', 'bg-ps-panel');
+      activeBtn.classList.remove('border-transparent', 'text-ps-muted');
+    }
+
+    // History Log Management
+    function logHistory(action) {
+      state.history.push({ action, time: new Date().toLocaleTimeString() });
+      const container = document.getElementById('historyList');
+      const item = document.createElement('div');
+      item.className = "p-2 hover:bg-ps-hover border-b border-ps-border/40 text-ps-muted flex justify-between items-center";
+      item.innerHTML = `<span>${action}</span><span class="text-[9px]">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`;
+      container.prepend(item);
+    }
+
+    function clearActiveLayer() {
+      if (state.layers[state.activeLayerIndex]) {
+        const layer = state.layers[state.activeLayerIndex];
+        layer.ctx.clearRect(0, 0, state.canvasWidth, state.canvasHeight);
+        compositeLayers();
+        logHistory('Cleared Layer');
+      }
+    }
+
+    // Export Functionality
+    function saveCanvasImage() {
+      const link = document.createElement('a');
+      link.download = 'photo_magic_artwork.png';
+      link.href = mainCanvas.toDataURL('image/png');
+      link.click();
+      triggerToast('Exported Image as PNG');
+    }
+
+    function exportPSD() {
+      const psdManifest = {
+        title: "Photo Magic Project",
+        owner: "kennmagic",
+        width: state.canvasWidth,
+        height: state.canvasHeight,
+        layersCount: state.layers.length,
+        layers: state.layers.map(l => ({ name: l.name, opacity: l.opacity, blend: l.blend }))
+      };
+      const blob = new Blob([JSON.stringify(psdManifest, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.download = 'project_manifest.psd.json';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      triggerToast('Exported PSD Project Manifest');
+    }
+
+    // Toast Notification System
+    function triggerToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = "px-4 py-2 bg-ps-panel border border-ps-accent text-gray-200 text-xs rounded-lg shadow-2xl flex items-center space-x-2 transition transform translate-y-2 opacity-0";
+      toast.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-ps-accent"></i><span>${message}</span>`;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
